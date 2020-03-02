@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Diagnostics;
-using System.Threading;
+using System.Text;
 
 namespace Core
 {
@@ -12,9 +12,9 @@ namespace Core
             double[] result = new double[4];
             Stopwatch sw = new Stopwatch();
 
-
             sw.Start();
-            File.WriteAllBytes("1GiB File", new byte[1073741824]);
+            File.WriteAllBytes("512MiB File", new byte[536870912]);
+            File.WriteAllBytes("512MiB File2", new byte[536870912]);
             sw.Stop();
             double speed = 1024 / ((double)sw.Elapsed.Ticks / 10000000);
             Console.WriteLine(sw.Elapsed + "      " + Math.Round(speed, 1) + "MiB / s");
@@ -33,35 +33,33 @@ namespace Core
             result[1] = Math.Round(speed, 1);
             
             sw.Reset();
-            byte[] read = new byte[]{};
+            System.Threading.Thread.Sleep(5000);
             sw.Start();
-            read = File.ReadAllBytes("1GiB File");
-            read[read.Length - 1] = 1;
+            //byte[] read = File.ReadAllBytes("1GiB File");
+            File.ReadAllText("512MiB File");
+            File.ReadAllText("512MiB File2");
             sw.Stop();
-            Console.WriteLine(read[0]);
             speed = 1024 / ((double)sw.Elapsed.Ticks / 10000000);
             Console.WriteLine(sw.Elapsed + "      " + Math.Round(speed, 1) + "MiB / s");
             result[2] = Math.Round(speed, 1);
-            read = new byte[0];
+            //read = new byte[0];
             
             sw.Reset();
-            byte[][] reads = new byte[262144][];
 
             sw.Start();
             for (int i = 0; i < 262144; )
             {
-                reads[i] = File.ReadAllBytes("small files/" + i.ToString());
-                reads[i][reads[i].Length - 1] = 1;
+                File.ReadAllText("small files/" + i);
                 i++;
             }
             speed = 1024 / ((double)sw.Elapsed.Ticks / 10000000);
             Console.WriteLine(sw.Elapsed + "      " + Math.Round(speed, 1) + "MiB / s");
             result[3] = Math.Round(speed, 1);
-            reads = new byte[0][];
             Console.WriteLine("ㅈㅁ 기다려봐 정리점");
             Directory.Delete("small files", true);
-            File.Delete("1GiB File");
-            return result;
+            File.Delete("512MiB File");
+            File.Delete("512MiB File2");
+             return result;
         }
     }
 }
