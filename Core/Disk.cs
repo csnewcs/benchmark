@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Core
 {
@@ -18,7 +19,7 @@ namespace Core
             double speed = 1024 / ((double)sw.Elapsed.Ticks / 10000000);
             Console.WriteLine(sw.Elapsed + "      " + Math.Round(speed, 1) + "MiB / s");
             result[0] = Math.Round(speed, 1);
-
+            
             sw.Reset();
             Directory.CreateDirectory("small files");
             sw.Start();
@@ -30,22 +31,27 @@ namespace Core
             speed = 1024 / ((double)sw.Elapsed.Ticks / 10000000);
             Console.WriteLine(sw.Elapsed + "      " + Math.Round(speed, 1) + "MiB / s");
             result[1] = Math.Round(speed, 1);
-
+            
             sw.Reset();
+            byte[] read = new byte[]{};
             sw.Start();
-            byte[] read = File.ReadAllBytes("1GiB File");
+            read = File.ReadAllBytes("1GiB File");
+            read[read.Length - 1] = 1;
             sw.Stop();
+            Console.WriteLine(read[0]);
             speed = 1024 / ((double)sw.Elapsed.Ticks / 10000000);
             Console.WriteLine(sw.Elapsed + "      " + Math.Round(speed, 1) + "MiB / s");
             result[2] = Math.Round(speed, 1);
             read = new byte[0];
-
+            
             sw.Reset();
             byte[][] reads = new byte[262144][];
+
             sw.Start();
             for (int i = 0; i < 262144; )
             {
                 reads[i] = File.ReadAllBytes("small files/" + i.ToString());
+                reads[i][reads[i].Length - 1] = 1;
                 i++;
             }
             speed = 1024 / ((double)sw.Elapsed.Ticks / 10000000);

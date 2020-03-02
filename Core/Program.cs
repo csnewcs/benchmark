@@ -45,6 +45,8 @@ namespace Core
             $"(저장장치) 대형 파일 읽기: {disk[2]} MiB/s\n" +
             $"(저장장치) 소형 파일 읽기: {disk[3]} MiB/s";
             File.WriteAllText("벤치마크 결과.txt", save);
+            Console.WriteLine($"{Environment.CurrentDirectory}/벤치마크 결과.txt 에 결과가 저장되었습니다.\n종료하려면 아무 키나 누르세요...");
+            Console.ReadKey();
         }
         private Stopwatch benchmark()
         {
