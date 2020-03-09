@@ -16,9 +16,10 @@ namespace GUI_GTK
         Button start = new Button("벤치마크 시작하기"); //이때 전달되는 인자는 버튼의 텍스트, 버튼 생성
         ProgressBar pb = new ProgressBar();
         Label lb = new Label("\'벤치마크 시작하기\' 버튼을 눌러주세요");
-        public Program() : base("Center")
+        public Program() : base("Benchmark")
         {
-            SetDefaultSize(325, 90);
+            SetDefaultSize(400, 120);
+            base.Resizable = false;
             SetPosition(WindowPosition.Center);
 
             VBox vbox = new VBox(false, 2);
@@ -67,7 +68,7 @@ namespace GUI_GTK
             $"(저장장치) 소형 파일 읽기: {disk[3]}";
             File.WriteAllText("벤치마크 결과.txt", save);
             start.Sensitive = true;
-            lb.Text = $"벤치마크 완료\n\'{Environment.CurrentDirectory}/벤치마크 결과.txt\' 에 벤치마크 결과가 저장되었습니다.";
+            lb.Text = $"벤치마크 완료 (총 점수: {result})\n\'{Environment.CurrentDirectory}/벤치마크 결과.txt\' 에 벤치마크 결과가 저장되었습니다.";
         }
         private Stopwatch benchmark()
         {
