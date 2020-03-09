@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using Gtk;
+using System.Threading.Tasks;
 
 namespace GUI_GTK
 {
@@ -18,7 +19,7 @@ namespace GUI_GTK
         Label lb = new Label("\'벤치마크 시작하기\' 버튼을 눌러주세요");
         public Program() : base("Benchmark")
         {
-            SetDefaultSize(400, 120);
+            SetDefaultSize(450, 120);
             base.Resizable = false;
             SetPosition(WindowPosition.Center);
 
@@ -37,6 +38,7 @@ namespace GUI_GTK
             DeleteEvent += delegate { Application.Quit(); };
 
             ShowAll(); //모든것을 보여주기
+
         }
         static void Main(string[] args)
         {
@@ -44,7 +46,6 @@ namespace GUI_GTK
             new Program();
             Application.Run();
         }
-
         private void startBench(object sender, EventArgs e)
         {
             start.Sensitive = false;
@@ -78,52 +79,51 @@ namespace GUI_GTK
             Stopwatch stopwatch = new Stopwatch();
 
             stopwatch.Start();
-            lb.Text = "1 / 8 벤치 시작 (단일 코어 정수 연산)";
+            lb.Text = "단일 코어 정수 연산 (1 / 8)";
             singleInt = singleCore.@int();
             Thread.Sleep(5000);
 
-            lb.Text = "2 / 8 벤치 시작 (다중 코어 정수 연산)";
-            pb.Fraction = 0.1f;
+            lb.Text = "다중 코어 정수 연산 (2 / 8)";
+            pb.Fraction = 0.11f;
             multiInt = multiCore.@int();
             Thread.Sleep(5000);
 
-            lb.Text = "3 / 8 벤치 시작 (단일 코어 실수 연산)";
-            pb.Fraction = 0.2f;
+            lb.Text = "단일 코어 실수 연산 (3 / 8)";
+            pb.Fraction = 0.22f;
             singleDouble = singleCore.@double();
             Thread.Sleep(5000);
 
-            lb.Text = "4 / 8 벤치 시작 (다중 코어 실수 연산)";
-            pb.Fraction = 0.3f;
+            lb.Text = "다중 코어 실수 연산 (4 / 8)";
+            pb.Fraction = 0.33f;
             multiDouble = multiCore.@double();
             Thread.Sleep(5000);
 
-            lb.Text = "5 / 8 벤치 시작 (대형 파일 쓰기)";
-            pb.Fraction = 0.4f;
+            lb.Text = "대형 파일 쓰기 (5 / 8)";
+            pb.Fraction = 0.44f;
             this.disk[0] = disk.bigWrite();
             
 
-            lb.Text = "6 / 8 벤치 시작 (소형 파일 쓰기)";
+            lb.Text = "소형 파일 쓰기 (6 / 8)";
             Thread.Sleep(5000);
-            pb.Fraction = 0.6f;
+            pb.Fraction = 0.55f;
             this.disk[1] = disk.smallWrite();
             Thread.Sleep(5000);
 
-            lb.Text = "7 / 8 벤치 시작 (대형 파일 읽기)";
-            pb.Fraction = 0.7f;
+            lb.Text = "대형 파일 읽기 (7 / 8)";
+            pb.Fraction = 0.66f;
             this.disk[2] = disk.bigRead();
             Thread.Sleep(5000);
 
-            lb.Text = "8 / 8 벤치 시작 (소형 파일 읽기)";
-            pb.Fraction = 0.8f;
+            lb.Text = "소형 파일 읽기 (8 / 8)";
+            pb.Fraction = 0.77f;
             this.disk[3] = disk.smallRead();
 
             lb.Text = "정리 중...";
-            pb.Fraction = 0.9f;
+            pb.Fraction = 0.88f;
             Directory.Delete("small files", true);
             File.Delete("512MiB File");
             File.Delete("512MiB File2");
 
-            lb.Text = "완료";
             pb.Fraction = 1;
             stopwatch.Stop();
             return stopwatch;
