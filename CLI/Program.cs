@@ -37,6 +37,8 @@ namespace Core
                 $"(저장장치) 소형 파일 읽기: {disk[3]}";
                 File.WriteAllText("벤치마크 결과.txt", save);
                 Console.WriteLine("벤치마크가 완료되었습니다 {0}에 결과 파일이 저장되었습니다", Environment.CurrentDirectory + "/벤치마크 결과.txt");
+                Console.WriteLine("종료하려면 아무 키나 누르세요");
+                Console.ReadKey();
             }
             else
             {
