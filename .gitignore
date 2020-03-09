@@ -1,6 +1,7 @@
 GUI (GTK)/bin/
 GUI (GTK)/obj/
-Core/bin/
+CLI/bin/
+CLI/obj/
 Core/obj/
 Core/small files/
 Core/1GiB File
