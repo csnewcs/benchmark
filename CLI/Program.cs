@@ -24,7 +24,7 @@ namespace Core
             if (isStart == "y" || isStart == "Y" || isStart == "")
             {
                 Stopwatch sw = benchmark();
-                int result = ((singleInt + multiInt + singleDouble + multiDouble) + ((int)(disk[0] + disk[1] + disk[2] + disk[3]) / 2)) / 5;
+                int result = ((singleInt + multiInt + singleDouble + multiDouble) / 4 + ((int)(disk[0] + disk[1] * 5 + disk[2] + disk[3] * 5) * 8)) / 5;
                 string save = $"벤치마크 결과 (일시: {DateTime.Now}) (걸린 시간: {sw.Elapsed})\n" + 
                 $"총 점수: {result}\n" + 
                 $"(CPU) 싱글 코어 정수 연산: {singleInt}\n" +
@@ -36,7 +36,7 @@ namespace Core
                 $"(저장장치) 대형 파일 읽기: {disk[2]}\n" +
                 $"(저장장치) 소형 파일 읽기: {disk[3]}";
                 File.WriteAllText("벤치마크 결과.txt", save);
-                Console.WriteLine("벤치마크가 완료되었습니다 {0}에 결과 파일이 저장되었습니다", Environment.CurrentDirectory + "/벤치마크 결과.txt");
+                Console.WriteLine("벤치마크가 완료되었습니다 (총 점수: {0}) {1}에 결과 파일이 저장되었습니다", result, Environment.CurrentDirectory + "/벤치마크 결과.txt");
                 Console.WriteLine("종료하려면 아무 키나 누르세요");
                 Console.ReadKey();
             }

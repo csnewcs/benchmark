@@ -56,7 +56,7 @@ namespace GUI_GTK
         {
             lb.Text = "벤치마크 준비중...";
             Stopwatch sw = benchmark();
-            int result = ((singleInt + multiInt + singleDouble + multiDouble) + ((int)(disk[0] + disk[1] + disk[2] + disk[3]) / 2)) / 5;
+            int result = ((singleInt + multiInt + singleDouble + multiDouble) / 4 + ((int)(disk[0] + disk[1] * 5 + disk[2] + disk[3] * 5) * 8)) / 5;
             string save = $"벤치마크 결과 (일시: {DateTime.Now}) (걸린 시간: {sw.Elapsed})\n" + 
             $"총 점수: {result}\n" + 
             $"(CPU) 싱글 코어 정수 연산: {singleInt}\n" +
