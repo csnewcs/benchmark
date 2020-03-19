@@ -2,6 +2,4 @@ GUI (GTK)/bin/
 GUI (GTK)/obj/
 CLI/bin/
 CLI/obj/
-Core/obj/
-Core/small files/
-Core/1GiB File
+CLI/url.txt
