@@ -20,7 +20,7 @@ namespace GUI_GTK
             new Program();
             Application.Run(); //실제 창 만드는건 MakeForm.cs
         }
-        private void startBench(object sender, EventArgs e)
+        private async void startBench(object sender, EventArgs e)
         {
             start.Sensitive = false;
             show.Sensitive = false;
@@ -57,15 +57,29 @@ namespace GUI_GTK
                     Process.Start("url.txt");
                     start.Sensitive = true;
                     wantUpload.Sensitive = true;
+                    lb.Text = "버튼을 눌러 작업을 시작해주세요";
                     return;
                 }
-                try
+                bool fail = false;
+                bool notFinish = true;
+                Thread downloadThread = new Thread(() => 
                 {
-                    client.DownloadStringCompleted += (sender, s) => {down = s.Result; };
-                    client.DownloadStringAsync(new Uri(readFile[0]));
-                    downloadJson = JObject.Parse(down);
+                    try
+                    {
+                        down = client.DownloadString(readFile[0]);
+                    }
+                    catch
+                    {
+                        fail = true;
+                    }
+                    notFinish = false;
+                });
+                downloadThread.Start();
+                while (notFinish)
+                {
+                    await Task.Delay(100);
                 }
-                catch
+                if (fail)
                 {
                     MessageDialog makeUrl = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, false, "올바른 json서버 url을 적어주세요");
                     makeUrl.Run();
@@ -73,8 +87,10 @@ namespace GUI_GTK
                     Process.Start("url.txt");
                     start.Sensitive = true;
                     wantUpload.Sensitive = true;
+                    lb.Text = "버튼을 눌러 작업을 시작해주세요";
                     return;
                 }
+                downloadJson = JObject.Parse(down);
                 if (downloadJson.ContainsKey(nickname.Text))
                 {
                     MessageDialog changeNickname = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Error, ButtonsType.Cancel, false, "이미 같은 닉네임이 있습니다. 바꿔주세요.");
@@ -86,8 +102,8 @@ namespace GUI_GTK
                     nickname.Sensitive = true;
                     nickname.Text = "";
                 }
-                pb.Fraction += 0.1;
-                Thread thread = new Thread(() => benchmark(9, downloadJson, readFile[0]));
+                pb.Fraction += 0.09;
+                Thread thread = new Thread(() => benchmark(10, downloadJson, readFile[0]));
                 thread.Start();
             }
             else
@@ -188,7 +204,7 @@ namespace GUI_GTK
             $"(저장장치) 대형 파일 읽기: {diskResult[2]}\n" +
             $"(저장장치) 소형 파일 읽기: {diskResult[3]}";
             File.WriteAllText("벤치마크 결과.txt", save);
-            if (!string.IsNullOrEmpty(url))
+            if (download != null)
             {
                 lb.Text = $"업로드 중...";
                 pb.Fraction += unit;
@@ -216,6 +232,7 @@ namespace GUI_GTK
             wantUpload.Active = false;
             wantUpload.Sensitive = true;
             show.Sensitive = true;
+            text = "";
         }
         async void showBench(object objcect, EventArgs e)
         {
@@ -224,6 +241,7 @@ namespace GUI_GTK
             nickname.Sensitive = false;
             show.Sensitive = false;
             
+            lb.Text = "사전 검사중...";
             WebClient client = new WebClient();
             string[] readFile = new string[0];
             JObject downloadJson = new JObject();
@@ -240,17 +258,19 @@ namespace GUI_GTK
                 Process.Start("url.txt");
                 start.Sensitive = true;
                 wantUpload.Sensitive = true;
+                lb.Text = "버튼을 눌러 작업을 시작해주세요";
                 return;
             }
-            string url = File.ReadAllLines("url.txt")[0];
             bool fail = false;
             bool notFinish = true;
+            lb.Text = "다운로드 중";
+            pb.Fraction = 0.25;
             Thread downloadThread = new Thread(() => 
             {
                 Console.WriteLine("시작");
                 try
                 {
-                    down = client.DownloadString(url);
+                    down = client.DownloadString(readFile[0]);
                 }
                 catch
                 {
@@ -262,9 +282,8 @@ namespace GUI_GTK
             downloadThread.Start();
             while (notFinish)
             {
-                await Task.Delay(500);
+                await Task.Delay(100);
             }
-            Console.WriteLine(down);
             if (fail)
             {
                 MessageDialog makeUrl = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, false, "올바른 json서버 url을 적어주세요");
@@ -273,17 +292,20 @@ namespace GUI_GTK
                 Process.Start("url.txt");
                 start.Sensitive = true;
                 wantUpload.Sensitive = true;
-                nickname.Sensitive = true;
                 show.Sensitive = true;
+                lb.Text = "버튼을 눌러 작업을 시작해주세요";
                 return;
             }
+            lb.Text = "분석 중";
+            pb.Fraction = 0.5;
             downloadJson = JObject.Parse(down);
             string[] sorted = sort(downloadJson.DeepClone() as JObject);
             string save = "";
             MessageDialog dialog = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Question, ButtonsType.YesNo, false, "상세정보를 표시하시겠습니까?");
             int detail = dialog.Run();
             dialog.Dispose();
-            Console.WriteLine(detail);
+            lb.Text = "저장 중";
+            pb.Fraction = 0.75;
             if (detail == -8)
             {
                 for (int i = 0; i < downloadJson.Count; ++i)
@@ -305,7 +327,6 @@ namespace GUI_GTK
             }
             else
             {
-                Console.WriteLine(downloadJson.Count);
                 for (int i = 0; i < downloadJson.Count; ++i)
                 {
                     int score = (int)downloadJson[sorted[i]]["all"];
@@ -314,17 +335,18 @@ namespace GUI_GTK
                 }
             }
             File.WriteAllText("점수.txt", save);
-            Console.WriteLine("{0}/점수.txt에 파일이 저장되었습니다.", Environment.CurrentDirectory);
+            lb.Text = $"{Environment.CurrentDirectory}/점수.txt에 파일이 저장되었습니다.";
+            pb.Fraction = 1;
+            start.Sensitive = true;
+            wantUpload.Sensitive = true;
+            show.Sensitive = true;
         }
         private string[] sort(JObject original)
         {
             string[] key = new string[original.Count];
-            Console.WriteLine(original.Count);
-            int loop = original.Count;
-            Console.WriteLine(loop);
-            for (int i = 0; i < loop; i++) //이유는 모르겠는데 original.Count하면 얘가 1번 루프 덜함
+            int loop = original.Count; // for에 original.Count하면 오류 나는 이유를 서술하시오 (5점)
+            for (int i = 0; i < loop; i++)
             {
-                Console.WriteLine("루프 " + i);
                 int temp = 0;
                 foreach (var item in original)
                 {
@@ -336,10 +358,6 @@ namespace GUI_GTK
                     }
                 }
                 original.Remove(key[i]);
-            }
-            foreach (string s in key)
-            {
-                Console.WriteLine(s);
             }
             return key;
         }

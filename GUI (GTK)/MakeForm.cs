@@ -13,12 +13,7 @@ namespace GUI_GTK
         Label lb = new Label("버튼을 눌러 작업을 시작해주세요");
         CheckButton wantUpload = new CheckButton("벤치마크 결과 업로드");
         Entry nickname = new Entry("닉네임을 입력하세요");
-        Button show = new Button("벤치마크 결과 보기");
-
-        // 에러가 뜰 때 보여주는 다이어로그
-        
-        
-        
+        Button show = new Button("벤치마크 결과 보기");    
 
         
         public Program() : base("Benchmark")
