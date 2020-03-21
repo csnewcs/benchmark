@@ -16,7 +16,7 @@ namespace GUI_GTK
         Button show = new Button("벤치마크 결과 보기");
 
         // 에러가 뜰 때 보여주는 다이어로그
-        MessageDialog dialog = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Question, ButtonsType.YesNo, false, "상세정보를 표시하시겠습니까?");
+        
         
         
 

@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using Gtk;
-using System.Net;
 using System.Threading.Tasks;
+using System.Net;
 using Newtonsoft.Json.Linq;
 
 namespace GUI_GTK
@@ -12,7 +12,7 @@ namespace GUI_GTK
     partial class Program : Window
     {
         bool succeed = false;
-
+        string down = "";
         Stopwatch sw;
         static void Main(string[] args)
         {
@@ -24,6 +24,7 @@ namespace GUI_GTK
         {
             start.Sensitive = false;
             show.Sensitive = false;
+            nickname.Sensitive = false;
             wantUpload.Sensitive = false;
             lb.Text = "벤치마크 준비중...";
             Stopwatch sw = new Stopwatch();
@@ -33,13 +34,15 @@ namespace GUI_GTK
                 WebClient client = new WebClient();
                 client.Encoding = System.Text.Encoding.UTF8;
                 string[] readFile = new string[0];
-                string downloadJson = "";
-                Console.WriteLine("0");
+                JObject downloadJson = new JObject();
                 if (nickname.Text == "")
                 {
                     MessageDialog insertNickname = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Error, ButtonsType.Close, false, "닉네임을 입력하세요");
                     insertNickname.Run();
                     insertNickname.Dispose();
+                    start.Sensitive = true;
+                    wantUpload.Sensitive = true;
+                    return;
                 }
                 try
                 {
@@ -47,14 +50,44 @@ namespace GUI_GTK
                 }
                 catch
                 {
-                    MessageDialog makeUrl = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Question, ButtonsType.YesNo, false, "url.txt파일을 만드세요");
+                    MessageDialog makeUrl = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, false, "올바른 json서버 url을 적어주세요");
                     makeUrl.Run();
                     makeUrl.Dispose();
+                    File.WriteAllText("url.txt", "");
+                    Process.Start("url.txt");
+                    start.Sensitive = true;
+                    wantUpload.Sensitive = true;
+                    return;
                 }
-                downloadJson = client.DownloadString(readFile[0]);
-                float unit = 0.1f;
-                pb.Fraction += unit;
-                Thread thread = new Thread(() => benchmark(10, downloadJson, readFile[0]));
+                try
+                {
+                    client.DownloadStringCompleted += (sender, s) => {down = s.Result; };
+                    client.DownloadStringAsync(new Uri(readFile[0]));
+                    downloadJson = JObject.Parse(down);
+                }
+                catch
+                {
+                    MessageDialog makeUrl = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, false, "올바른 json서버 url을 적어주세요");
+                    makeUrl.Run();
+                    makeUrl.Dispose();
+                    Process.Start("url.txt");
+                    start.Sensitive = true;
+                    wantUpload.Sensitive = true;
+                    return;
+                }
+                if (downloadJson.ContainsKey(nickname.Text))
+                {
+                    MessageDialog changeNickname = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Error, ButtonsType.Cancel, false, "이미 같은 닉네임이 있습니다. 바꿔주세요.");
+                    changeNickname.Run();
+                    changeNickname.Dispose();
+                    Process.Start("url.txt");
+                    start.Sensitive = true;
+                    wantUpload.Sensitive = true;
+                    nickname.Sensitive = true;
+                    nickname.Text = "";
+                }
+                pb.Fraction += 0.1;
+                Thread thread = new Thread(() => benchmark(9, downloadJson, readFile[0]));
                 thread.Start();
             }
             else
@@ -63,7 +96,7 @@ namespace GUI_GTK
                 thread.Start();
             }
         }
-        private void benchmark(int all, string download = "", string url = "")
+        private void benchmark(int all, JObject download = null, string url = "")
         {
             sw = new Stopwatch();
 
@@ -123,30 +156,29 @@ namespace GUI_GTK
             Thread.Sleep(5000);
 
             lb.Text = $"대형 파일 읽기 (7 / 8)";
-            pb.Fraction = unit;
+            pb.Fraction += unit;
             diskResult[2] = disk.bigRead();
             GC.Collect();
             Thread.Sleep(5000);
 
             lb.Text = $"소형 파일 읽기 (8 / 8)";
-            pb.Fraction = unit;
-            diskResult[3] = disk.smallRead();
+            pb.Fraction += unit;
+            diskResult[3] += disk.smallRead();
             GC.Collect();
             Thread.Sleep(5000);
 
             lb.Text = "정리 중...";
-            pb.Fraction = unit;
+            pb.Fraction += unit;
             Directory.Delete("small files", true);
             File.Delete("512MiB File");
             File.Delete("512MiB File2");
 
-            all = ((singleInt + multiInt + singleDouble + multiDouble) / 4 + ((int)(diskResult[0] + diskResult[1] * 5 + diskResult[2] + diskResult[3] * 5) * 8)) / 5;
+            int result = ((singleInt + multiInt + singleDouble + multiDouble) / 4 + ((int)(diskResult[0] + diskResult[1] * 5 + diskResult[2] + diskResult[3] * 5) * 8)) / 5;
             sw.Stop();
             DateTime dateTime = DateTime.Now;
             succeed = true;
-            pb.Fraction = 1;
             string save = $"벤치마크 결과 (일시: {dateTime}) (걸린 시간: {sw.Elapsed})\n" + 
-            $"총 점수: {all}\n" + 
+            $"총 점수: {result}\n" + 
             $"(CPU) 싱글 코어 정수 연산: {singleInt}\n" +
             $"(CPU) 멀티 코어 정수 연산: {multiInt}\n" + 
             $"(CPU) 싱글 코어 실수 연산: {singleDouble}\n" + 
@@ -156,60 +188,160 @@ namespace GUI_GTK
             $"(저장장치) 대형 파일 읽기: {diskResult[2]}\n" +
             $"(저장장치) 소형 파일 읽기: {diskResult[3]}";
             File.WriteAllText("벤치마크 결과.txt", save);
-            lb.Text = $"벤치마크 완료 (총 점수: {all})\n\'{Environment.CurrentDirectory}/벤치마크 결과.txt\' 에 벤치마크 결과가 저장되었습니다.";
+            if (!string.IsNullOrEmpty(url))
+            {
+                lb.Text = $"업로드 중...";
+                pb.Fraction += unit;
+                JObject my = new JObject();
+                my.Add("all", result);
+                JArray cpu = new JArray();
+                cpu.Add(singleInt);
+                cpu.Add(multiInt);
+                cpu.Add(singleDouble);
+                cpu.Add(multiDouble);
+                my.Add("CPU",cpu);
+                JArray ssd = new JArray();
+                ssd.Add(diskResult[0]);
+                ssd.Add(diskResult[1]);
+                ssd.Add(diskResult[2]);
+                ssd.Add(diskResult[3]);
+                my.Add("Disk", ssd);
+                download.Add(nickname.Text, my);
+                client.Headers.Add("Content-Type", "application/json");
+                client.UploadString(url, "PUT", download.ToString());
+            }
+            lb.Text = $"벤치마크 완료 (총 점수: {result})\n\'{Environment.CurrentDirectory}/벤치마크 결과.txt\' 에 벤치마크 결과가 저장되었습니다.";
+            pb.Fraction = 1;
             start.Sensitive = true;
             wantUpload.Active = false;
             wantUpload.Sensitive = true;
             show.Sensitive = true;
         }
-        private void up(string name, int singleInt, int multiInt, int singleDouble, int multiDouble, double[] diskResult)
+        async void showBench(object objcect, EventArgs e)
         {
+            start.Sensitive = false;
+            wantUpload.Sensitive = false;
+            nickname.Sensitive = false;
+            show.Sensitive = false;
+            
             WebClient client = new WebClient();
-            string url = File.ReadAllLines("url.txt")[0];
-            JObject all  = new JObject();
-            while (true)
+            string[] readFile = new string[0];
+            JObject downloadJson = new JObject();
+            try
             {
+                readFile = File.ReadAllLines("url.txt");
+            }
+            catch
+            {
+                MessageDialog makeUrl = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, false, "올바른 json서버 url을 적어주세요");
+                makeUrl.Run();
+                makeUrl.Dispose();
+                File.WriteAllText("url.txt", "");
+                Process.Start("url.txt");
+                start.Sensitive = true;
+                wantUpload.Sensitive = true;
+                return;
+            }
+            string url = File.ReadAllLines("url.txt")[0];
+            bool fail = false;
+            bool notFinish = true;
+            Thread downloadThread = new Thread(() => 
+            {
+                Console.WriteLine("시작");
                 try
                 {
-                    all = JObject.Parse(client.DownloadString(url));
-                    break;
-                }
-                catch (TimeoutException)
-                {
-                    Console.WriteLine("타임아웃 재시도");
+                    down = client.DownloadString(url);
                 }
                 catch
                 {
-                    Console.WriteLine("저런 올바른 url이 아니거나 담긴 정보가 json이 아니에요");
-                    return;
+                    fail = true;
+                }
+                Console.WriteLine("끝");
+                notFinish = false;
+            });
+            downloadThread.Start();
+            while (notFinish)
+            {
+                await Task.Delay(500);
+            }
+            Console.WriteLine(down);
+            if (fail)
+            {
+                MessageDialog makeUrl = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Info, ButtonsType.Ok, false, "올바른 json서버 url을 적어주세요");
+                makeUrl.Run();
+                makeUrl.Dispose();
+                Process.Start("url.txt");
+                start.Sensitive = true;
+                wantUpload.Sensitive = true;
+                nickname.Sensitive = true;
+                show.Sensitive = true;
+                return;
+            }
+            downloadJson = JObject.Parse(down);
+            string[] sorted = sort(downloadJson.DeepClone() as JObject);
+            string save = "";
+            MessageDialog dialog = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Question, ButtonsType.YesNo, false, "상세정보를 표시하시겠습니까?");
+            int detail = dialog.Run();
+            dialog.Dispose();
+            Console.WriteLine(detail);
+            if (detail == -8)
+            {
+                for (int i = 0; i < downloadJson.Count; ++i)
+                {
+                    Console.WriteLine(i);
+                    JObject one = downloadJson[sorted[i]] as JObject;
+                    string send = "CPU\n" + 
+                    $"\t싱글 코어 정수연산: {one["CPU"][0]}\n" +
+                    $"\t멀티 코어 정수연산: {one["CPU"][1]}\n" +
+                    $"\t싱글 코어 실수연산: {one["CPU"][2]}\n" +
+                    $"\t멀티 코어 실수연산: {one["CPU"][3]}\n" + 
+                    "저장장치\n" + 
+                    $"\t대형 파일 쓰기: {one["Disk"][0]}\n" + 
+                    $"\t소형 파일 쓰기: {one["Disk"][1]}\n" +
+                    $"\t대형 파일 읽기: {one["Disk"][2]}\n" +
+                    $"\t소형 파일 읽기: {one["Disk"][3]}";
+                    save += $"{i + 1}: {sorted[i]} ({one["all"]})\n{send}\n\n";
                 }
             }
-            while (all.ContainsKey(name))
+            else
             {
-                
-            }
-            JObject my = new JObject();
-            my.Add("all", all);
-            JArray cpu = new JArray();
-            cpu.Add(singleInt);
-            cpu.Add(multiInt);
-            cpu.Add(singleDouble);
-            cpu.Add(multiDouble);
-            my.Add("CPU",cpu);
-            JArray disk = new JArray();
-            disk.Add(diskResult[0]);
-            disk.Add(diskResult[1]);
-            disk.Add(diskResult[2]);
-            disk.Add(diskResult[3]);
-            my.Add("Disk", disk);
-            all.Add(name, my);
-            client.Headers.Add("Content-Type", "application/json");
-            client.UploadString(url, "PUT", all.ToString());
-            Console.WriteLine("업로드 완료");
-        }
-        void showBench(object objcect, EventArgs e)
-        {
+                Console.WriteLine(downloadJson.Count);
+                for (int i = 0; i < downloadJson.Count; ++i)
+                {
+                    int score = (int)downloadJson[sorted[i]]["all"];
 
+                    save += $"{i + 1}: {sorted[i]} ({score})\n";
+                }
+            }
+            File.WriteAllText("점수.txt", save);
+            Console.WriteLine("{0}/점수.txt에 파일이 저장되었습니다.", Environment.CurrentDirectory);
+        }
+        private string[] sort(JObject original)
+        {
+            string[] key = new string[original.Count];
+            Console.WriteLine(original.Count);
+            int loop = original.Count;
+            Console.WriteLine(loop);
+            for (int i = 0; i < loop; i++) //이유는 모르겠는데 original.Count하면 얘가 1번 루프 덜함
+            {
+                Console.WriteLine("루프 " + i);
+                int temp = 0;
+                foreach (var item in original)
+                {
+                    JObject user = item.Value as JObject;
+                    if ((int)user["all"] >= temp)
+                    {
+                        key[i] = item.Key;
+                        temp = (int)user["all"];
+                    }
+                }
+                original.Remove(key[i]);
+            }
+            foreach (string s in key)
+            {
+                Console.WriteLine(s);
+            }
+            return key;
         }
         string text = "";
         void checkUpload(object objcect, EventArgs e)

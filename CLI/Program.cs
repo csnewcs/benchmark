@@ -118,10 +118,6 @@ namespace Core
                     all = JObject.Parse(client.DownloadString(url));
                     break;
                 }
-                catch (TimeoutException)
-                {
-                    Console.WriteLine("타임아웃 재시도");
-                }
                 catch
                 {
                     Console.WriteLine("저런 올바른 url이 아니거나 담긴 정보가 json이 아니에요");
@@ -175,10 +171,6 @@ namespace Core
                     all = JObject.Parse(client.DownloadString(url));
                     break;
                 }
-                catch (TimeoutException)
-                {
-                    Console.WriteLine("타임아웃, 재시도");
-                }
                 catch
                 {
                     Console.WriteLine("저런 올바른 url이 아니거나 담긴 정보가 json이 아니에요");
@@ -190,7 +182,7 @@ namespace Core
 
             if (allScore == "y" || allScore == "Y" || allScore == "")
             {
-                for (int i = 0; i < all.Count; i++)
+                for (int i = 0; i < all.Count; ++i)
                 {
                     JObject one = all[sorted[i]] as JObject;
                     string send = "CPU\n" + 
@@ -208,9 +200,10 @@ namespace Core
             }
             else
             {
-                for (int i = 0; i < all.Count; i++)
+                for (int i = 0; i < all.Count; ++i)
                 {
                     int score = (int)all[sorted[i]]["all"];
+
                     save += $"{i + 1}: {sorted[i]} ({score})\n";
                 }
             }
@@ -221,13 +214,15 @@ namespace Core
         private string[] sort(JObject original)
         {
             string[] key = new string[original.Count];
-            for (int i = 0; i <= original.Count; i++)
+            int loop = original.Count;
+            for (int i = 0; i < loop; i++) 
             {
+                Console.WriteLine("루프 " + i);
                 int temp = 0;
                 foreach (var item in original)
                 {
                     JObject user = item.Value as JObject;
-                    if ((int)user["all"] > temp)
+                    if ((int)user["all"] >= temp)
                     {
                         key[i] = item.Key;
                         temp = (int)user["all"];
