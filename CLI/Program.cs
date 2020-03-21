@@ -111,14 +111,22 @@ namespace Core
             WebClient client = new WebClient();
             string url = File.ReadAllLines("url.txt")[0];
             JObject all  = new JObject();
-            try
+            while (true)
             {
-                all = JObject.Parse(client.DownloadString(url));
-            }
-            catch
-            {
-                Console.WriteLine("저런 올바른 url이 아니거나 담긴 정보가 json이 아니에요");
-                return;
+                try
+                {
+                    all = JObject.Parse(client.DownloadString(url));
+                    break;
+                }
+                catch (TimeoutException)
+                {
+                    Console.WriteLine("타임아웃 재시도");
+                }
+                catch
+                {
+                    Console.WriteLine("저런 올바른 url이 아니거나 담긴 정보가 json이 아니에요");
+                    return;
+                }
             }
             while (all.ContainsKey(name))
             {
@@ -160,20 +168,28 @@ namespace Core
             }
             string url = File.ReadAllLines("url.txt")[0];
             JObject all  = new JObject();
-            try
+            while (true)
             {
-                all = JObject.Parse(client.DownloadString(url));
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("저런 올바른 url이 아니거나 담긴 정보가 json이 아니에요");
-                return;
+                try
+                {
+                    all = JObject.Parse(client.DownloadString(url));
+                    break;
+                }
+                catch (TimeoutException)
+                {
+                    Console.WriteLine("타임아웃, 재시도");
+                }
+                catch
+                {
+                    Console.WriteLine("저런 올바른 url이 아니거나 담긴 정보가 json이 아니에요");
+                    return;
+                }
             }
             string[] sorted = sort(all.DeepClone() as JObject);
+            string save = "";
 
             if (allScore == "y" || allScore == "Y" || allScore == "")
             {
-                string save = "";
                 for (int i = 0; i < all.Count; i++)
                 {
                     JObject one = all[sorted[i]] as JObject;
@@ -187,9 +203,7 @@ namespace Core
                     $"\t소형 파일 쓰기: {one["Disk"][1]}\n" +
                     $"\t대형 파일 읽기: {one["Disk"][2]}\n" +
                     $"\t소형 파일 읽기: {one["Disk"][3]}";
-                    save += $"{i + 1}: {sorted[i]} ({one["all"]})\n{send}\n";
-                    File.WriteAllText("점수.txt", send);
-                    Console.WriteLine("{0}에 파일이 저장되었습니다.", Environment.CurrentDirectory);
+                    save += $"{i + 1}: {sorted[i]} ({one["all"]})\n{send}\n\n";
                 }
             }
             else
@@ -197,9 +211,11 @@ namespace Core
                 for (int i = 0; i < all.Count; i++)
                 {
                     int score = (int)all[sorted[i]]["all"];
-                    Console.WriteLine($"{i + 1}: {sorted[i]} ({score})");
+                    save += $"{i + 1}: {sorted[i]} ({score})\n";
                 }
             }
+            File.WriteAllText("점수.txt", save);
+            Console.WriteLine("{0}/점수.txt에 파일이 저장되었습니다.", Environment.CurrentDirectory);
             
         }
         private string[] sort(JObject original)
