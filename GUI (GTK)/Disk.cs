@@ -44,7 +44,6 @@ namespace GUI_GTK
             sw.Reset();
             sw.Start();
             File.ReadAllText("512MiB File");
-            GC.Collect();
             File.ReadAllText("512MiB File2");
             sw.Stop();
             double speed = 1024 / ((double)sw.Elapsed.Ticks / 10000000);
