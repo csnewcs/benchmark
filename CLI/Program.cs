@@ -145,7 +145,18 @@ namespace Core
             my.Add("Disk", disk);
             all.Add(name, my);
             client.Headers.Add("Content-Type", "application/json");
-            client.UploadString(url, "PUT", all.ToString());
+            while (true)
+            {
+                try
+                {
+                    client.UploadString(url, "PUT", all.ToString());
+                    break;
+                }
+                catch
+                {
+                    // 루프 다시해!
+                }
+            }
             Console.WriteLine("업로드 완료");
         }
         private void see()

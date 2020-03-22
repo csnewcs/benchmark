@@ -224,7 +224,18 @@ namespace GUI_GTK
                 my.Add("Disk", ssd);
                 download.Add(nickname.Text, my);
                 client.Headers.Add("Content-Type", "application/json");
-                client.UploadString(url, "PUT", download.ToString());
+                while (true)
+                {
+                    try
+                    {
+                        client.UploadString(url, "PUT", download.ToString());
+                        break;
+                    }
+                    catch
+                    {
+                        // 루프 다시해!
+                    }
+                }
             }
             lb.Text = $"벤치마크 완료 (총 점수: {result})\n\'{Environment.CurrentDirectory}/벤치마크 결과.txt\' 에 벤치마크 결과가 저장되었습니다.";
             pb.Fraction = 1;
