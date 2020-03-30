@@ -14,6 +14,9 @@ namespace GUI_GTK
         bool succeed = false;
         string down = "";
         Stopwatch sw;
+        string labelText = "";
+        double progress = 0;
+        bool doLoop = true;
         static void Main(string[] args)
         {
             Application.Init();
@@ -102,7 +105,7 @@ namespace GUI_GTK
                     nickname.Sensitive = true;
                     nickname.Text = "";
                 }
-                pb.Fraction += 0.09;
+                progress = 0.09;
                 Thread thread = new Thread(() => benchmark(10, downloadJson, readFile[0]));
                 thread.Start();
             }
@@ -110,6 +113,13 @@ namespace GUI_GTK
             {
                 Thread thread = new Thread(() => benchmark(8));
                 thread.Start();
+            }
+            while (doLoop) // 이러면 GUI가 멈추고 하지 않겠지
+            {
+                pb.Fraction = progress;
+                lb.Text = labelText;
+                await Task.Delay(100);
+                GC.Collect();
             }
         }
         private void benchmark(int all, JObject download = null, string url = "")
@@ -136,55 +146,55 @@ namespace GUI_GTK
             WebClient client = new WebClient();
 
             sw.Start();
-            lb.Text = $"단일 코어 정수 연산 (1 / 8)";
+            labelText = $"단일 코어 정수 연산 (1 / 8)";
             singleInt = singleCore.@int();
             GC.Collect();
             Thread.Sleep(5000);
 
-            lb.Text = $"다중 코어 정수 연산 (2 / 8)";
-            pb.Fraction += unit;
+            labelText = $"다중 코어 정수 연산 (2 / 8)";
+            progress += unit;
             multiInt = multiCore.@int();
             GC.Collect();
             Thread.Sleep(5000);
 
-            lb.Text = $"단일 코어 실수 연산 (3 / 8)";
-            pb.Fraction += unit;
+            labelText = $"단일 코어 실수 연산 (3 / 8)";
+            progress += unit;
             singleDouble = singleCore.@double();
             GC.Collect();
             Thread.Sleep(5000);
 
-            lb.Text = $"다중 코어 실수 연산 (4 / 8)";
-            pb.Fraction += unit;
+            labelText = $"다중 코어 실수 연산 (4 / 8)";
+            progress += unit;
             multiDouble = multiCore.@double();
             GC.Collect();
             Thread.Sleep(5000);
 
-            lb.Text = $"대형 파일 쓰기 (5 / 8)";
-            pb.Fraction += unit;
+            labelText = $"대형 파일 쓰기 (5 / 8)";
+            progress += unit;
             diskResult[0] = disk.bigWrite();
             GC.Collect();
             Thread.Sleep(5000);
 
-            lb.Text = $"소형 파일 쓰기 (6 / 8)";
-            pb.Fraction += unit;
+            labelText = $"소형 파일 쓰기 (6 / 8)";
+            progress += unit;
             diskResult[1] = disk.smallWrite();
             GC.Collect();
             Thread.Sleep(5000);
 
-            lb.Text = $"대형 파일 읽기 (7 / 8)";
-            pb.Fraction += unit;
+            labelText = $"대형 파일 읽기 (7 / 8)";
+            progress += unit;
             diskResult[2] = disk.bigRead();
             GC.Collect();
             Thread.Sleep(5000);
 
-            lb.Text = $"소형 파일 읽기 (8 / 8)";
-            pb.Fraction += unit;
+            labelText = $"소형 파일 읽기 (8 / 8)";
+            progress += unit;
             diskResult[3] += disk.smallRead();
             GC.Collect();
             Thread.Sleep(5000);
 
-            lb.Text = "정리 중...";
-            pb.Fraction += unit;
+            labelText = "정리 중...";
+            progress += unit;
             Directory.Delete("small files", true);
             File.Delete("512MiB File");
             File.Delete("512MiB File2");
@@ -206,8 +216,8 @@ namespace GUI_GTK
             File.WriteAllText("벤치마크 결과.txt", save);
             if (download != null)
             {
-                lb.Text = $"업로드 중...";
-                pb.Fraction += unit;
+                labelText = $"업로드 중...";
+                progress += unit;
                 JObject my = new JObject();
                 my.Add("all", result);
                 JArray cpu = new JArray();
@@ -237,13 +247,15 @@ namespace GUI_GTK
                     }
                 }
             }
-            lb.Text = $"벤치마크 완료 (총 점수: {result})\n\'{Environment.CurrentDirectory}/벤치마크 결과.txt\' 에 벤치마크 결과가 저장되었습니다.";
-            pb.Fraction = 1;
+            labelText = $"벤치마크 완료 (총 점수: {result})\n\'{Environment.CurrentDirectory}/벤치마크 결과.txt\' 에 벤치마크 결과가 저장되었습니다.";
+            progress = 1;
+            Thread.Sleep(1000);
             start.Sensitive = true;
             wantUpload.Active = false;
             wantUpload.Sensitive = true;
             show.Sensitive = true;
             text = "";
+            doLoop = false;
         }
         async void showBench(object objcect, EventArgs e)
         {
@@ -252,7 +264,7 @@ namespace GUI_GTK
             nickname.Sensitive = false;
             show.Sensitive = false;
             
-            lb.Text = "사전 검사중...";
+            labelText = "사전 검사중...";
             WebClient client = new WebClient();
             string[] readFile = new string[0];
             JObject downloadJson = new JObject();
@@ -275,7 +287,7 @@ namespace GUI_GTK
             bool fail = false;
             bool notFinish = true;
             lb.Text = "다운로드 중";
-            pb.Fraction = 0.25;
+            progress = 0.25;
             Thread downloadThread = new Thread(() => 
             {
                 Console.WriteLine("시작");
@@ -307,16 +319,16 @@ namespace GUI_GTK
                 lb.Text = "버튼을 눌러 작업을 시작해주세요";
                 return;
             }
-            lb.Text = "분석 중";
-            pb.Fraction = 0.5;
+            labelText = "분석 중";
+            progress = 0.5;
             downloadJson = JObject.Parse(down);
             string[] sorted = sort(downloadJson.DeepClone() as JObject);
             string save = "";
             MessageDialog dialog = new MessageDialog(null, DialogFlags.DestroyWithParent, MessageType.Question, ButtonsType.YesNo, false, "상세정보를 표시하시겠습니까?");
             int detail = dialog.Run();
             dialog.Dispose();
-            lb.Text = "저장 중";
-            pb.Fraction = 0.75;
+            labelText = "저장 중";
+            progress = 0.75;
             if (detail == -8)
             {
                 for (int i = 0; i < downloadJson.Count; ++i)
@@ -347,7 +359,7 @@ namespace GUI_GTK
             }
             File.WriteAllText("점수.txt", save);
             lb.Text = $"{Environment.CurrentDirectory}/점수.txt에 파일이 저장되었습니다.";
-            pb.Fraction = 1;
+            progress = 1;
             start.Sensitive = true;
             wantUpload.Sensitive = true;
             show.Sensitive = true;
